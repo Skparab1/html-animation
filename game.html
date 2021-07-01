@@ -1,189 +1,304 @@
 <!DOCTYPE html>
-
 <html>
-
 <head>
-
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
 </head>
-
 <body>
+  <script>
+  var config = {
+      type: Phaser.AUTO,
+      width: 1200,
+      height: 700,
+      physics: {
+          default: 'arcade',
+      },
+      scene: {
+          preload: preload,
+          create: create,
+          update: update,
+      }
+  };
+  var game = new Phaser.Game(config);
+   //Game Objects
+  var platforms;
+  var player;
+  var behind;
+  var coins = [];
+  var totalcoins = 12;
+  var pickedcoins = 0;
+  var attacking = false
+  //Keyboard controls
+  var cursors;
+  var keys;
+  var space;
+  var gui;
+  var guiTimer;
+  var graphics;
+  var swordDrawn = false;
+   var lastLeft = false;
+   var timeDone = true;
+   var numAttack = 0;
+  function preload()
+  {
+      this.load.image('scene', 'deepblue.png');
+      this.load.image('area', 'deepblue.png');
+      this.load.image('platform', 'platform.png');
+      //this.load.image('standing_player', 'assets/character.png');
+      this.load.image('coins1', 'carrot.png');
+      this.load.image('coin', 'coin.png');
+      this.load.atlas('adventurer', 'Adventurer.png', 'Adventurer.json');
+      this.load.image('rabbit', 'wabbit.png');
+  }
+  function create()
+  {
+      //Set the background origin to be at (0, 0) or top left corner of the image rather than the center of the image asset
+     let background = this.add.tileSprite(0, 0, game.scale.width, game.scale.height, 'scene').setOrigin(0, 0);
+     //Create the platforms
+     createPlatforms(this);
+     //Create the coin interactables
+     createcoins(this);
+     let playerAnimations = {};
+     var idleR = this.anims.create({key: 'char_idleR', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-idle-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['idleR'] = idleR;
+      var idleL = this.anims.create({key: 'char_idleL', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-idleL-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['idleL'] = idleL;
+      var idle2R = this.anims.create({key: 'char_idle2R', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-idle-2-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['idle2R'] = idle2R;
+      var idle2L = this.anims.create({key: 'char_idle2L', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-idle-2L-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['idle2L'] = idle2L;
+      var left = this.anims.create({key: 'char_left', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-runL-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['left'] = left;
+      var right = this.anims.create({key: 'char_right', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-run-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['right'] = right;
+      var jumpR = this.anims.create({key: 'char_jumpR', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-jump-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['jumpR'] = jumpR;
+      var jumpL = this.anims.create({key: 'char_jumpL', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-jumpL-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['jumpL'] = jumpL;
+      var airR = this.anims.create({key: 'char_airR', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-crnr-jmp-', suffix: ".png", end: 2, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['airR'] = airR;
+      var airL = this.anims.create({key: 'char_airL', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-crnr-jmpL-', suffix: ".png", end: 2, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['airL'] = airL;
+      var attack1R = this.anims.create({key: 'char_attack1R', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack1-', suffix: ".png", end: 4, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['attack1R'] = attack1R;
+      var attack1L = this.anims.create({key: 'char_attack1L', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack1L-', suffix: ".png", end: 4, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['attack1L'] = attack1L;
+      var attack2R = this.anims.create({key: 'char_attack2R', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack2-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['attack2R'] = attack2R;
+      var attack2L = this.anims.create({key: 'char_attack2L', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack2L-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['attack2L'] = attack2L;
+      var attack3R = this.anims.create({key: 'char_attack3R', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack3-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['attack3R'] = attack3R;
+      var attack3L = this.anims.create({key: 'char_attack3L', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack3L-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
+      playerAnimations['attack3L'] = attack3L;
+     //Create the player character set to collide with the platforms and overlap with the coins
+     player = new Player(this, 400, 400, 'adventurer', playerAnimations);
+     this.physics.add.collider(player, platforms);
+     this.physics.add.overlap(player, coins, pickcoin, null, this);
+     player.play(player.animations['idleR']);
 
-    <script>
-
-    var config = {
-        type: Phaser.AUTO,
-        width: 1200,
-        height: 700,
-        physics: {
-            default: 'arcade',
-        },
-
-        scene: {
-            preload: preload,
-            create: create,
-            update: update,
-        }
-
-    };
-
-    var game = new Phaser.Game(config);
+     // player hit enemy
+     //this.physics.add.overlap(player, rabbit, attackrabbit, null, this);
+     //player.play(player.animations['idleR']);
     
-    //Game Objects
-    var platforms;
-    var player;
-    var behind;
-    var coins = [];
-    var totalcoins = 12;
-    var pickedcoins = 0;
+     //Set up user input
+     cursors = this.input.keyboard.createCursorKeys();
+     keys = this.input.keyboard.addKeys('A, D, Q, E');
+     space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+     space.on('down', jump);
+     keys.Q.on('down', updateSword);
+     //Create a very simple GUI
+     gui = this.add.text(50, 50, '', {fontSize: '32px', fill: '#000'});
 
-    //Keyboard controls
-    var cursors;
-    var keys;
-    var space;
+     rabbit = new Player(this, 800, 400, 'rabbit', playerAnimations);
+     this.physics.add.collider(rabbit, platforms);
+     this.physics.add.collider(rabbit, player);
 
-    var gui;
-    var guiTimer;
-
-    function preload()
-    {
-        this.load.image('scene', 'assets/scene.png');
-        this.load.image('area', 'assets/scene.png');
-        this.load.image('platform', 'assets/platform.png');
-        this.load.image('player', 'assets/character.png');
-        this.load.image('coins1', 'assets/coins1.png');
-        this.load.image('coin', 'assets/coin.png');
-    }
-
-    function create()
-    {
-        //Set the background origin to be at (0, 0) or top left corner of the image rather than the center of the image asset
-       let background = this.add.tileSprite(0, 0, game.scale.width, game.scale.height, 'scene').setOrigin(0, 0);
-
-       //Create the platforms 
-       createPlatforms(this);
-
-       //Create the coin interactables
-       createcoins(this);
-
-       //Create the player character set to collide with the platforms and overlap with the coins
-       player = new Player(this, 400, 400);
-       this.physics.add.collider(player, platforms);
-       this.physics.add.overlap(player, coins, pickcoin, null, this);
-
-       //Set up user input
-       cursors = this.input.keyboard.createCursorKeys();
-       keys = this.input.keyboard.addKeys('A, D');
-       space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-       space.on('down', jump);
-
-       //Create a very simple GUI
-       gui = this.add.text(50, 50, '', {fontSize: '32px', fill: '#000'});
-    }
-
-    function createPlatforms(scene)
-    {
-        scenebehind = scene.physics.add.staticGroup();
-
-        //basePlatform is the floor of the game
-        var behind = scenebehind.create(game.scale.width, game.scale.height, 'area');
-
-        //scenebehind.create(250, 350, 'area');
-        //scenebehind.create(950, 500, 'area'); 
-    }
-
-    function createcoins(scene)
-    {
-        for (var i = 0; i < totalcoins; i++)
+  }
+  function createPlatforms(scene)
+  {
+      platforms = scene.physics.add.staticGroup();
+      //basePlatform is the floor of the game
+      let basePlatform = platforms.create(game.scale.width/2, game.scale.height-30, 'platform');
+       basePlatform.setScale(3, 1).refreshBody();
+      platforms.create(250, 350, 'platform');
+      platforms.create(950, 500, 'platform');
+  }
+  function createcoins(scene)
+  {
+      for (var i = 0; i < totalcoins; i++)
+     {
+         let mycoin = new coins1(scene, Phaser.Math.Between(0, game.scale.width), Phaser.Math.Between(0, game.scale.height-80));
+         scene.physics.add.collider(mycoin, platforms);
+         coins.push(mycoin);
+     }
+  }
+  function update()
+  {
+      //Player has "drag" on the x-axis meaning they slide a bit after an input
+      player.setDragX(1500);
+      //Handle player movements
+      if (player.body.touching.down)
        {
-           let mycoin = new coins1(scene, Phaser.Math.Between(0, game.scale.width), Phaser.Math.Between(0, game.scale.height-80));
-           scene.physics.add.collider(mycoin, platforms);
-           coins.push(mycoin);
+           player.currentJumps = 0;
        }
-    }
+      if (keys.E.isDown && swordDrawn){
+           timeDone = false;
+           var timer = this.time.delayedCall(500, updateTime, [], this);
+           attack()
+       }
+       else if (cursors.left.isDown || keys.A.isDown)
+       {
+           player.setVelocityX(-200);
+           if (!player.body.touching.down){
+               player.play(player.animations['airL'], true);
+           }
+           else{
+               player.play(player.animations['left'], true);
+           }
+           lastLeft = true;
+ 
+       } else if (cursors.right.isDown || keys.D.isDown)
+       {
+           player.setVelocityX(200);
+           if (!player.body.touching.down){
+               player.play(player.animations['airR'], true);
+           }
+           else{
+               player.play(player.animations['right'], true);
+           }
+           lastLeft = false;
+       }
+       else if (timeDone){
+           if (lastLeft){
+               if (swordDrawn){
+                   player.play(player.animations['idle2L'], true);
+               }
+               else{
+                   player.play(player.animations['idleL'], true);
+               }
+           }
+           else{
+               if (swordDrawn){
+                   player.play(player.animations['idle2R'], true);
+               }
+               else{
+                   player.play(player.animations['idleR'], true);
+               }
+           }
+       }
+ 
+      if (pickedcoins === totalcoins)
+      {
+          gui.setText('Great job you won');
+      }
 
-    function update()
-    {
-        //Player will not move in the x-axis unless a movement key is being pressed
-        player.setVelocityX(0);
-
-        //Player has "drag" on the x-axis meaning they slide a bit after an input
-        player.setDragX(1000);
-
-        //Handle player movements
-        if (cursors.left.isDown || keys.A.isDown)
-        {
-            player.setVelocityX(-400);
-            //behind.x = behind.x + 10
-
-        }
-        
-        if (cursors.right.isDown || keys.D.isDown)
-        {
-            player.setVelocityX(400);
-            //behind.x = behind.x - 10
-
-        }
-        if (pickedcoins === totalcoins)
-        {
-            gui.setText('Great job you won');
-        }
-    }
-
-    function jump(event)
-    {
-        if (player.body.touching.down)
-        {
-            player.setVelocityY(-1100)
-            player.currentJumps++;
-        } else if (player.currentJumps < player.totalJumps)
-        {
-            player.setVelocityY();
-            player.currentJumps++;
-        }
-    }
-
-    function pickcoin(player, coin)
-    {
-        coin.disableBody(true, true);
-        gui.setText('Number of coins picked up: '+ pickedcoins);
-        pickedcoins++;
-    }
-
-    function removeText()
-    {
-        gui.setText('');
-    }
-
-    class Player extends Phaser.Physics.Arcade.Sprite 
-    {
-        totalJumps = 2;
-        currentJumps = 0;
-        constructor(scene, x, y)
-        {
-            super(scene, x, y, 'player');
-            scene.add.existing(this);
-            scene.physics.add.existing(this);
-            this.setScale(2);
-            this.setCollideWorldBounds(true);
-            this.setGravityY(3000); //We will set gravity *per object* rather than for the scene!
-        }
-    }
-
-    class coins1 extends Phaser.Physics.Arcade.Sprite
-    {
-        constructor(scene, x, y)
-        {
-            super(scene, x, y, 'coin');
-            scene.add.existing(this);
-            scene.physics.add.existing(this);
-            this.setCollideWorldBounds(true);
-            this.setGravityY(1000);
-        }
-    }
-    </script>
-
+  }
+  function jump(event)
+  {
+      if (player.body.touching.down)
+      {
+           player.setVelocityY(-1300)
+           player.currentJumps++;
+      }
+      else if (player.currentJumps < player.totalJumps)
+      {
+           player.setVelocityY(-900)
+           player.currentJumps++;
+      
+      }
+  }
+  function updateSword(){
+       if (swordDrawn){
+           swordDrawn = false;
+       }
+       else{
+           swordDrawn = true;
+       }
+   }
+   function updateSword(){
+       if (swordDrawn){
+           swordDrawn = false;
+       }
+       else{
+           swordDrawn = true;
+       }
+   }
+  
+   function updateTime(){
+       timeDone = true;
+   }
+ 
+   function attack(event){
+      
+       if (numAttack === 1){
+           if (lastLeft){
+               player.play(player.animations['attack2L'], true);
+           }
+           else{
+               player.play(player.animations['attack2R'], true);
+           }
+           numAttack++;
+       }
+       else if (numAttack === 2){
+           if (lastLeft){
+               player.play(player.animations['attack3L'], true);
+           }
+           else{
+               player.play(player.animations['attack3R'], true);
+           }
+           numAttack = 0;
+       }
+       else{
+          //var timer = this.time.delayedCall(1000, updateTime, [], this);
+          if (lastLeft){
+               player.play(player.animations['attack1L'], true);
+           }
+           else{
+               player.play(player.animations['attack1R'], true);
+           }
+           numAttack++;
+          
+         
+       }
+ 
+   }
+  
+  function pickcoin(player, coin)
+  {
+      coin.disableBody(true, true);
+      gui.setText('Number of coins picked up: '+ pickedcoins);
+      pickedcoins++;
+  }
+  function removeText()
+  {
+      gui.setText('');
+  }
+  class Player extends Phaser.Physics.Arcade.Sprite
+  {
+      totalJumps = 2;
+      currentJumps = 0;
+      constructor(scene, x, y, spritesheet, animations)
+      {
+          super(scene, x, y, spritesheet);
+          this.animations = animations;
+          scene.add.existing(this);
+          scene.physics.add.existing(this);
+          this.setScale(2);
+          this.setCollideWorldBounds(true);
+          this.setGravityY(3000); //We will set gravity *per object* rather than for the scene!
+      }
+  }
+  class coins1 extends Phaser.Physics.Arcade.Sprite
+  {
+      constructor(scene, x, y)
+      {
+          super(scene, x, y, 'coin');
+          scene.add.existing(this);
+          scene.physics.add.existing(this);
+          this.setCollideWorldBounds(true);
+          this.setGravityY(1000);
+      }
+  }
+  </script>
 </body>
-
 </html>
