@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+
+</head>
+
+<body>
+
+    <script>
+
+    var config = {
+        type: Phaser.AUTO,
+        width: 1200,
+        height: 700,
+        physics: {
+            default: 'arcade',
+        },
+
+        scene: {
+            preload: preload,
+            create: create,
+            update: update,
+        }
+
+    };
+
+    var game = new Phaser.Game(config);
+    
+    //Game Objects
+    var platforms;
+    var player;
+    var behind;
+    var carrots = [];
+    var totalCarrots = 12;
+    var pickedcarrots = 0;
+
+    //Keyboard controls
+    var cursors;
+    var keys;
+    var space;
+
+    var gui;
+    var guiTimer;
+
+    function preload()
+    {
+        this.load.image('scene', 'assets/scene.png');
+        this.load.image('area', 'assets/scene.png');
+        this.load.image('platform', 'assets/platform.png');
+        this.load.image('player', 'assets/character.png');
+        this.load.image('carrot', 'assets/carrot.png');
+        this.load.image('coin', 'assets/coin.png');
+    }
+
+    function create()
+    {
+        //Set the background origin to be at (0, 0) or top left corner of the image rather than the center of the image asset
+       let background = this.add.tileSprite(0, 0, game.scale.width, game.scale.height, 'scene').setOrigin(0, 0);
+
+       //Create the platforms 
+       createPlatforms(this);
+
+       //Create the coin interactables
+       createCarrots(this);
+
+       //Create the player character set to collide with the platforms and overlap with the carrots
+       player = new Player(this, 400, 400);
+       this.physics.add.collider(player, platforms);
+       this.physics.add.overlap(player, carrots, eatCarrot, null, this);
+
+       //Set up user input
+       cursors = this.input.keyboard.createCursorKeys();
+       keys = this.input.keyboard.addKeys('A, D');
+       space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+       space.on('down', jump);
+
+       //Create a very simple GUI
+       gui = this.add.text(50, 50, '', {fontSize: '32px', fill: '#000'});
+    }
+
+    function createPlatforms(scene)
+    {
+        scenebehind = scene.physics.add.staticGroup();
+
+        //basePlatform is the floor of the game
+        var behind = scenebehind.create(game.scale.width, game.scale.height, 'area');
+
+        //scenebehind.create(250, 350, 'area');
+        //scenebehind.create(950, 500, 'area'); 
+    }
+
+    function createCarrots(scene)
+    {
+        for (var i = 0; i < totalCarrots; i++)
+       {
+           let myCarrot = new Carrot(scene, Phaser.Math.Between(0, game.scale.width), Phaser.Math.Between(0, game.scale.height-80));
+           scene.physics.add.collider(myCarrot, platforms);
+           carrots.push(myCarrot);
+       }
+    }
+
+    function update()
+    {
+        //Player will not move in the x-axis unless a movement key is being pressed
+        player.setVelocityX(0);
+
+        //Player has "drag" on the x-axis meaning they slide a bit after an input
+        player.setDragX(1000);
+
+        //Handle player movements
+        if (cursors.left.isDown || keys.A.isDown)
+        {
+            player.setVelocityX(-400);
+            //behind.x = behind.x + 10
+
+        }
+        
+        if (cursors.right.isDown || keys.D.isDown)
+        {
+            player.setVelocityX(400);
+            //behind.x = behind.x - 10
+
+        }
+        if (pickedcarrots === totalCarrots)
+        {
+            gui.setText('Great job you won');
+        }
+    }
+
+    function jump(event)
+    {
+        if (player.body.touching.down)
+        {
+            player.setVelocityY(-1100)
+            player.currentJumps++;
+        } else if (player.currentJumps < player.totalJumps)
+        {
+            player.setVelocityY();
+            player.currentJumps++;
+        }
+    }
+
+    function eatCarrot(player, coin)
+    {
+        coin.disableBody(true, true);
+        gui.setText('Number of coins picked up: '+ pickedcarrots);
+        pickedcarrots++;
+    }
+
+    function removeText()
+    {
+        gui.setText('');
+    }
+
+    class Player extends Phaser.Physics.Arcade.Sprite 
+    {
+        totalJumps = 2;
+        currentJumps = 0;
+        constructor(scene, x, y)
+        {
+            super(scene, x, y, 'player');
+            scene.add.existing(this);
+            scene.physics.add.existing(this);
+            this.setScale(2);
+            this.setCollideWorldBounds(true);
+            this.setGravityY(3000); //We will set gravity *per object* rather than for the scene!
+        }
+    }
+
+    class Carrot extends Phaser.Physics.Arcade.Sprite
+    {
+        constructor(scene, x, y)
+        {
+            super(scene, x, y, 'coin');
+            scene.add.existing(this);
+            scene.physics.add.existing(this);
+            this.setCollideWorldBounds(true);
+            this.setGravityY(1000);
+        }
+    }
+    </script>
+
+</body>
+
+</html>
