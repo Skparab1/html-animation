@@ -34,9 +34,9 @@
     var platforms;
     var player;
     var behind;
-    var carrots = [];
-    var totalCarrots = 12;
-    var pickedcarrots = 0;
+    var coins = [];
+    var totalcoins = 12;
+    var pickedcoins = 0;
 
     //Keyboard controls
     var cursors;
@@ -52,7 +52,7 @@
         this.load.image('area', 'assets/scene.png');
         this.load.image('platform', 'assets/platform.png');
         this.load.image('player', 'assets/character.png');
-        this.load.image('carrot', 'assets/carrot.png');
+        this.load.image('coins1', 'assets/coins1.png');
         this.load.image('coin', 'assets/coin.png');
     }
 
@@ -65,12 +65,12 @@
        createPlatforms(this);
 
        //Create the coin interactables
-       createCarrots(this);
+       createcoins(this);
 
-       //Create the player character set to collide with the platforms and overlap with the carrots
+       //Create the player character set to collide with the platforms and overlap with the coins
        player = new Player(this, 400, 400);
        this.physics.add.collider(player, platforms);
-       this.physics.add.overlap(player, carrots, eatCarrot, null, this);
+       this.physics.add.overlap(player, coins, pickcoin, null, this);
 
        //Set up user input
        cursors = this.input.keyboard.createCursorKeys();
@@ -93,13 +93,13 @@
         //scenebehind.create(950, 500, 'area'); 
     }
 
-    function createCarrots(scene)
+    function createcoins(scene)
     {
-        for (var i = 0; i < totalCarrots; i++)
+        for (var i = 0; i < totalcoins; i++)
        {
-           let myCarrot = new Carrot(scene, Phaser.Math.Between(0, game.scale.width), Phaser.Math.Between(0, game.scale.height-80));
-           scene.physics.add.collider(myCarrot, platforms);
-           carrots.push(myCarrot);
+           let mycoin = new coins1(scene, Phaser.Math.Between(0, game.scale.width), Phaser.Math.Between(0, game.scale.height-80));
+           scene.physics.add.collider(mycoin, platforms);
+           coins.push(mycoin);
        }
     }
 
@@ -125,7 +125,7 @@
             //behind.x = behind.x - 10
 
         }
-        if (pickedcarrots === totalCarrots)
+        if (pickedcoins === totalcoins)
         {
             gui.setText('Great job you won');
         }
@@ -144,11 +144,11 @@
         }
     }
 
-    function eatCarrot(player, coin)
+    function pickcoin(player, coin)
     {
         coin.disableBody(true, true);
-        gui.setText('Number of coins picked up: '+ pickedcarrots);
-        pickedcarrots++;
+        gui.setText('Number of coins picked up: '+ pickedcoins);
+        pickedcoins++;
     }
 
     function removeText()
@@ -171,7 +171,7 @@
         }
     }
 
-    class Carrot extends Phaser.Physics.Arcade.Sprite
+    class coins1 extends Phaser.Physics.Arcade.Sprite
     {
         constructor(scene, x, y)
         {
