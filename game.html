@@ -27,6 +27,7 @@
   var totalcoins = 12;
   var pickedcoins = 0;
   var attacking = false
+  var killedEnemy = false
   //Keyboard controls
   var cursors;
   var keys;
@@ -106,12 +107,14 @@
      space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
      space.on('down', jump);
      keys.Q.on('down', updateSword);
+     keys.E.on('down', updateAttacking);
      //Create a very simple GUI
      gui = this.add.text(50, 50, '', {fontSize: '32px', fill: '#000'});
 
      rabbit = new Player(this, 800, 400, 'rabbit', playerAnimations);
-     this.physics.add.collider(rabbit, platforms);
-     this.physics.add.collider(rabbit, player);
+     //this.physics.add.collider(rabbit, platforms);
+     this.physics.add.overlap(rabbit, player, hitenemy, null, this);
+     rabbit.push(rabbit);
 
   }
   function createPlatforms(scene)
@@ -120,8 +123,8 @@
       //basePlatform is the floor of the game
       let basePlatform = platforms.create(game.scale.width/2, game.scale.height-30, 'platform');
        basePlatform.setScale(3, 1).refreshBody();
-      platforms.create(250, 350, 'platform');
-      platforms.create(950, 500, 'platform');
+      platforms.create(300, 350, 'platform');
+      platforms.create(850, 500, 'platform');
   }
   function createcoins(scene)
   {
@@ -132,6 +135,24 @@
          coins.push(mycoin);
      }
   }
+
+  function hitenemy()
+  {
+    //gui.setText('In conditional');  
+     if (swordDrawn === false) {
+         rabbit.x = rabbit.x - 50
+         gui.setText('The enemy has killed you');  
+     }
+     else {
+         if (attacking === true){
+            rabbit.x = rabbit.x + 50
+            gui.setText('You have killed the enemy!'); 
+            rabbit.disableBody(true, true);
+            killedEnemy = true
+         }
+     }
+  }
+
   function update()
   {
       //Player has "drag" on the x-axis meaning they slide a bit after an input
@@ -185,11 +206,13 @@
                    player.play(player.animations['idleR'], true);
                }
            }
+        
        }
  
-      if (pickedcoins === totalcoins)
-      {
-          gui.setText('Great job you won');
+      if (pickedcoins === totalcoins){
+         if (killedEnemy){
+             gui.setText('Great job you won');
+         }
       }
 
   }
@@ -221,6 +244,15 @@
        }
        else{
            swordDrawn = true;
+       }
+   }
+
+   function updateAttacking(){
+       if (attacking){
+           attacking = false;
+       }
+       else{
+           attacking = true;
        }
    }
   
