@@ -1,336 +1,479 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
-</head>
-<body>
-  <script>
-  var config = {
-      type: Phaser.AUTO,
-      width: 1200,
-      height: 700,
-      physics: {
-          default: 'arcade',
-      },
-      scene: {
-          preload: preload,
-          create: create,
-          update: update,
-      }
-  };
-  var game = new Phaser.Game(config);
-   //Game Objects
-  var platforms;
-  var player;
-  var behind;
-  var coins = [];
-  var totalcoins = 12;
-  var pickedcoins = 0;
-  var attacking = false
-  var killedEnemy = false
-  //Keyboard controls
-  var cursors;
-  var keys;
-  var space;
-  var gui;
-  var guiTimer;
-  var graphics;
-  var swordDrawn = false;
-   var lastLeft = false;
-   var timeDone = true;
-   var numAttack = 0;
-  function preload()
-  {
-      this.load.image('scene', 'deepblue.png');
-      this.load.image('area', 'deepblue.png');
-      this.load.image('platform', 'platform.png');
-      //this.load.image('standing_player', 'assets/character.png');
-      this.load.image('coins1', 'carrot.png');
-      this.load.image('coin', 'coin.png');
-      this.load.atlas('adventurer', 'Adventurer.png', 'Adventurer.json');
-      this.load.image('rabbit', 'wabbit.png');
-  }
-  function create()
-  {
-      //Set the background origin to be at (0, 0) or top left corner of the image rather than the center of the image asset
-     let background = this.add.tileSprite(0, 0, game.scale.width, game.scale.height, 'scene').setOrigin(0, 0);
-     //Create the platforms
-     createPlatforms(this);
-     //Create the coin interactables
-     createcoins(this);
-     let playerAnimations = {};
-     var idleR = this.anims.create({key: 'char_idleR', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-idle-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['idleR'] = idleR;
-      var idleL = this.anims.create({key: 'char_idleL', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-idleL-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['idleL'] = idleL;
-      var idle2R = this.anims.create({key: 'char_idle2R', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-idle-2-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['idle2R'] = idle2R;
-      var idle2L = this.anims.create({key: 'char_idle2L', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-idle-2L-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['idle2L'] = idle2L;
-      var left = this.anims.create({key: 'char_left', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-runL-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['left'] = left;
-      var right = this.anims.create({key: 'char_right', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-run-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['right'] = right;
-      var jumpR = this.anims.create({key: 'char_jumpR', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-jump-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['jumpR'] = jumpR;
-      var jumpL = this.anims.create({key: 'char_jumpL', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-jumpL-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['jumpL'] = jumpL;
-      var airR = this.anims.create({key: 'char_airR', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-crnr-jmp-', suffix: ".png", end: 2, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['airR'] = airR;
-      var airL = this.anims.create({key: 'char_airL', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-crnr-jmpL-', suffix: ".png", end: 2, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['airL'] = airL;
-      var attack1R = this.anims.create({key: 'char_attack1R', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack1-', suffix: ".png", end: 4, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['attack1R'] = attack1R;
-      var attack1L = this.anims.create({key: 'char_attack1L', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack1L-', suffix: ".png", end: 4, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['attack1L'] = attack1L;
-      var attack2R = this.anims.create({key: 'char_attack2R', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack2-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['attack2R'] = attack2R;
-      var attack2L = this.anims.create({key: 'char_attack2L', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack2L-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['attack2L'] = attack2L;
-      var attack3R = this.anims.create({key: 'char_attack3R', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack3-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['attack3R'] = attack3R;
-      var attack3L = this.anims.create({key: 'char_attack3L', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack3L-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
-      playerAnimations['attack3L'] = attack3L;
-     //Create the player character set to collide with the platforms and overlap with the coins
-     player = new Player(this, 400, 400, 'adventurer', playerAnimations);
-     this.physics.add.collider(player, platforms);
-     this.physics.add.overlap(player, coins, pickcoin, null, this);
-     player.play(player.animations['idleR']);
-
-     // player hit enemy
-     //this.physics.add.overlap(player, rabbit, attackrabbit, null, this);
-     //player.play(player.animations['idleR']);
-    
-     //Set up user input
-     cursors = this.input.keyboard.createCursorKeys();
-     keys = this.input.keyboard.addKeys('A, D, Q, E');
-     space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-     space.on('down', jump);
-     keys.Q.on('down', updateSword);
-     keys.E.on('down', updateAttacking);
-     //Create a very simple GUI
-     gui = this.add.text(50, 50, '', {fontSize: '32px', fill: '#000'});
-
-     rabbit = new Player(this, 800, 400, 'rabbit', playerAnimations);
-     //this.physics.add.collider(rabbit, platforms);
-     this.physics.add.overlap(rabbit, player, hitenemy, null, this);
-     rabbit.push(rabbit);
-
-  }
-  function createPlatforms(scene)
-  {
-      platforms = scene.physics.add.staticGroup();
-      //basePlatform is the floor of the game
-      let basePlatform = platforms.create(game.scale.width/2, game.scale.height-30, 'platform');
-       basePlatform.setScale(3, 1).refreshBody();
-      platforms.create(300, 350, 'platform');
-      platforms.create(850, 500, 'platform');
-  }
-  function createcoins(scene)
-  {
-      for (var i = 0; i < totalcoins; i++)
-     {
-         let mycoin = new coins1(scene, Phaser.Math.Between(0, game.scale.width), Phaser.Math.Between(0, game.scale.height-80));
-         scene.physics.add.collider(mycoin, platforms);
-         coins.push(mycoin);
-     }
-  }
-
-  function hitenemy()
-  {
-    //gui.setText('In conditional');  
-     if (swordDrawn === false) {
-         rabbit.x = rabbit.x - 50
-         gui.setText('The enemy has killed you');  
-     }
-     else {
-         if (attacking === true){
-            rabbit.x = rabbit.x + 50
-            gui.setText('You have killed the enemy!'); 
-            rabbit.disableBody(true, true);
-            killedEnemy = true
-         }
-     }
-  }
-
-  function update()
-  {
-      //Player has "drag" on the x-axis meaning they slide a bit after an input
-      player.setDragX(1500);
-      //Handle player movements
-      if (player.body.touching.down)
-       {
-           player.currentJumps = 0;
-       }
-      if (keys.E.isDown && swordDrawn){
-           timeDone = false;
-           var timer = this.time.delayedCall(500, updateTime, [], this);
-           attack()
-       }
-       else if (cursors.left.isDown || keys.A.isDown)
-       {
-           player.setVelocityX(-200);
-           if (!player.body.touching.down){
-               player.play(player.animations['airL'], true);
-           }
-           else{
-               player.play(player.animations['left'], true);
-           }
-           lastLeft = true;
  
-       } else if (cursors.right.isDown || keys.D.isDown)
+<html>
+ 
+<head>
+ 
+   <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+ 
+</head>
+ 
+<body>
+ 
+   <script>
+ 
+   var config = {
+       type: Phaser.AUTO,
+       width: 1200,
+       height: 800,
+       physics: {
+           default: 'arcade',
+           arcade: {
+            tileBias: 32,
+            }
+       },
+ 
+       scene: {
+           preload: preload,
+           create: create,
+           update: update,
+       },
+       audio: {
+        disableWebAudio: true
+        }
+ 
+   };
+ 
+   var game = new Phaser.Game(config);
+  
+   //Game Objects
+   var platforms;
+   var player;
+   var behind;
+   var coins = [];
+   var enemies = [];
+   var totalcoins = 50;
+   var pickedcoins = 0;
+ 
+   //Keyboard controls
+   var cursors;
+   var keys;
+   var space;
+
+   var attacking = false;
+    var killedEnemy = false;
+ 
+   var gui;
+   var guiTimer;
+   var swordDrawn = false;
+    var lastLeft = false;
+    var timeDone = true;
+    var numAttack = 0;
+   var timer; 
+   var victoryStart = false;
+   var musicStarted = false;
+   var winPlayed = false;
+   var death = false;
+
+   function preload()
+   {
+       this.load.image('scene', 'bgImage.png');
+       this.load.image('platform', 'platform.png');
+       //this.load.image('standing_player', 'assets/character.png');
+       this.load.image('coins1', 'carrot.png');
+       this.load.image('coin', 'coin.png');
+       this.load.atlas('adventurer', 'Adventurer.png', 'Adventurer.json');
+       this.load.atlas('goblin', 'goblinsheet.png', 'goblinsheet.json');
+       this.load.tilemapTiledJSON('tilemap', 'tilemap.json');
+       this.load.image('tileset', 'tileset.png');
+       this.load.audio('attack', ['slash.ogg']);
+       this.load.audio('background', ['background.mp3']);
+       this.load.audio('win', ['win.wav']);
+       this.load.image('enemy', 'goblin.png');
+       
+   }
+ 
+   function create()
+   {
+       //Set the background origin to be at (0, 0) or top left corner of the image rather than the center of the image asset
+        
+    this.cameras.main.setBounds(0, 0, 5000,　game.scale.height);
+    this.physics.world.setBounds(0, 0, 5000, game.scale.height);
+    let background = this.add.tileSprite(0, 0, 5000, game.scale.height, 'scene').setOrigin(0, 0);
+
+    map = this.add.tilemap('tilemap');
+    tiles = map.addTilesetImage('tileset');
+
+	// add the tileset image we are using
+	//const tileset = map.addTilesetImage('tilemap', 'base_tiles')
+    layer = map.createLayer('Tile Layer 1', tiles);
+    layer.setCollisionBetween(1, 19199);
+   
+
+    // Convert the layer. Any colliding tiles will be given a Matter body.
+    // If a tile has collision shapes from Tiled, these will be loaded. If
+    // not, a default rectangle body will be used.
+    // The body will be accessible via tile.physics.matterBody.
+	
+    //sound
+    let playerSounds = {};
+     var atk = this.sound.add('attack', {loop: false});
+     playerSounds['atk'] = atk;
+     var bg = this.sound.add('background', {loop: true});
+     playerSounds['bg'] = bg;
+     var win = this.sound.add('win', {loop: false});
+     playerSounds['win'] = win;
+
+
+      //Create the platforms
+      //createPlatforms(this);
+ 
+      //Create the coin interactables
+      createcoins(this);
+ 
+        let playerAnimations = {};
+      var idleR = this.anims.create({key: 'char_idleR', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-idle-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['idleR'] = idleR;
+       var idleL = this.anims.create({key: 'char_idleL', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-idleL-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['idleL'] = idleL;
+       var idle2R = this.anims.create({key: 'char_idle2R', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-idle-2-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['idle2R'] = idle2R;
+       var idle2L = this.anims.create({key: 'char_idle2L', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-idle-2L-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['idle2L'] = idle2L;
+       var left = this.anims.create({key: 'char_left', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-runL-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['left'] = left;
+       var right = this.anims.create({key: 'char_right', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-run-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['right'] = right;
+       var jumpR = this.anims.create({key: 'char_jumpR', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-jump-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['jumpR'] = jumpR;
+       var jumpL = this.anims.create({key: 'char_jumpL', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-jumpL-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['jumpL'] = jumpL;
+       var airR = this.anims.create({key: 'char_airR', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-crnr-jmp-', suffix: ".png", end: 2, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['airR'] = airR;
+       var airL = this.anims.create({key: 'char_airL', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-crnr-jmpL-', suffix: ".png", end: 2, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['airL'] = airL;
+       var attack1R = this.anims.create({key: 'char_attack1R', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack1-', suffix: ".png", end: 4, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['attack1R'] = attack1R;
+       var attack1L = this.anims.create({key: 'char_attack1L', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack1L-', suffix: ".png", end: 4, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['attack1L'] = attack1L;
+       var attack2R = this.anims.create({key: 'char_attack2R', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack2-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['attack2R'] = attack2R;
+       var attack2L = this.anims.create({key: 'char_attack2L', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack2L-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['attack2L'] = attack2L;
+       var attack3R = this.anims.create({key: 'char_attack3R', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack3-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['attack3R'] = attack3R;
+       var attack3L = this.anims.create({key: 'char_attack3L', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-attack3L-', suffix: ".png", end: 5, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['attack3L'] = attack3L;
+       var victory = this.anims.create({key: 'char_victory', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-smrslt-', suffix: ".png", end: 3, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['victory'] = victory;
+       var hurt = this.anims.create({key: 'char_hurt', frames: this.anims.generateFrameNames('adventurer', {prefix: 'adventurer-die-', suffix: ".png", end: 6, zeroPad: 2}), repeat: -1, frameRate: 10});
+       playerAnimations['die'] = hurt;
+       
+       var enemyAnimations = {};
+
+      //Create the player character set to collide with the platforms and overlap with the coins
+      player = new Player(this, 400, 400, 'adventurer', playerAnimations, playerSounds);
+      this.physics.add.collider(player, layer);
+      this.physics.add.overlap(player, coins, pickcoin, null, this);
+      player.play(player.animations['idleR']);
+      this.cameras.main.startFollow(player, true, 0.05, 0.05);
+      death = false;
+      pickedcoins = 0;
+
+      //createEnemy(this);        
+      
+      rabbit = new Player(this, Phaser.Math.Between(500, game.scale.width), Phaser.Math.Between(0, game.scale.height-80), 'enemy', playerAnimations);
+        this.physics.add.collider(rabbit, layer);
+        this.physics.add.overlap(rabbit, player, hitenemy, null, this);
+    
+        this.physics.add.overlap(enemies, player, hitenemy, null, this);
+
+      //Set up user input
+      cursors = this.input.keyboard.createCursorKeys();
+      keys = this.input.keyboard.addKeys('A, D, Q, E');
+      space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+      space.on('down', jump);
+      keys.Q.on('down', updateSword);
+      keys.E.on('down', updateAttacking);
+      
+ 
+      //Create a very simple GUI
+      gui = this.add.text(50, 50, '', {fontSize: '32px', fill: '#000'});
+      newText = this.add.text(350, 400, '', {fontSize: '32px', fill: '#000'});
+      gui.setScrollFactor(0);
+   }
+ 
+   function createPlatforms(scene)
+   {
+       platforms = scene.physics.add.staticGroup();
+ 
+       //basePlatform is the floor of the game
+       let basePlatform = platforms.create(game.scale.width/2, game.scale.height-30, 'platform');
+        basePlatform.setScale(10, 1).refreshBody();
+ 
+       platforms.create(250, 350, 'platform');
+       platforms.create(950, 500, 'platform');
+       platforms.create(3000, 400, 'platform');
+   }
+ 
+   function createcoins(scene)
+   {
+       for (var i = 0; i < totalcoins; i++)
+      {
+          let mycoin = new coins1(scene, Phaser.Math.Between(0, 5000), Phaser.Math.Between(0, game.scale.height-80));
+          mycoin.setScale(.3, .3).refreshBody();
+ 
+          scene.physics.add.collider(mycoin, layer);
+          coins.push(mycoin);
+      }
+   }
+
+   function createEnemy(scene){
+        for (var i = 0; i < totalcoins; i++){
+            let myEnemy = new Player(scene, Phaser.Math.Between(500, 5000), Phaser.Math.Between(0, game.scale.height-80), "enemy", player.animations);
+            
+
+            scene.physics.add.collider(myEnemy, layer);
+            enemies.push(myEnemy);
+      }
+   }
+   function update()
+   {
+       //Player has "drag" on the x-axis meaning they slide a bit after an input
+       player.setDragX(1000);
+        gui.setText("Coins: " + pickedcoins);
+       //Handle player movements
+       if (player.body.blocked.down)
+        {
+            player.currentJumps = 0;
+        }
+        
+       
+        if (player.x > 400 && !musicStarted){
+            musicStarted = true;
+            player.sounds["bg"].play();
+
+        }
+        if (player.x >= 4750){
+            if (!winPlayed){
+                winPlayed = true;
+                player.sounds["win"].play();
+                var timer1 = this.time.delayedCall(1200, restartScene, [], this);
+            }
+            if (!victoryStart){
+                player.play(player.animations['victory'], true);
+                var timer = this.time.delayedCall(700, updateVictory, [], this);
+            }
+            else{
+                player.play(player.animations['idle2R'], true);
+            }
+            victoryText = this.add.text(4500, 350, '', {fontSize: '64px', fill: '#000'});
+            victoryText.setText('VICTORY!');
+        }
+        
+        else if (death){
+            player.play(player.animations['die']);
+        }
+        
+        else if (keys.E.isDown && swordDrawn && timeDone && !death){
+           timeDone = false;
+            attack()
+            var timer = this.time.delayedCall(500, updateTime, [], this);
+        }
+        else if (cursors.left.isDown || keys.A.isDown && timeDone && !death)
+        {
+            player.setVelocityX(-200);
+            if (!player.body.blocked.down){
+                player.play(player.animations['airL'], true);
+            }
+            else{
+                player.play(player.animations['left'], true);
+            }
+            lastLeft = true;
+
+        } else if (cursors.right.isDown || keys.D.isDown && timeDone && !death)
+        {
+            player.setVelocityX(200);
+            if (!player.body.blocked.down){
+                player.play(player.animations['airR'], true);
+            }
+            else{
+                player.play(player.animations['right'], true);
+            }
+            lastLeft = false;
+        } 
+        else if (timeDone && !death){
+            performIdle()
+            
+        }
+
+   }
+ 
+   function jump(event)
+   {
+       if (player.body.blocked.down)
        {
-           player.setVelocityX(200);
-           if (!player.body.touching.down){
-               player.play(player.animations['airR'], true);
-           }
-           else{
-               player.play(player.animations['right'], true);
-           }
-           lastLeft = false;
-       }
-       else if (timeDone){
-           if (lastLeft){
-               if (swordDrawn){
-                   player.play(player.animations['idle2L'], true);
-               }
-               else{
-                   player.play(player.animations['idleL'], true);
-               }
-           }
-           else{
-               if (swordDrawn){
-                   player.play(player.animations['idle2R'], true);
-               }
-               else{
-                   player.play(player.animations['idleR'], true);
-               }
-           }
+            player.setVelocityY(-1100)
+            player.currentJumps++;
+       } 
+       else if (player.currentJumps < player.totalJumps)
+       {
+            player.setVelocityY(-1100)
+            player.currentJumps++;
         
        }
- 
-      if (pickedcoins === totalcoins){
-         if (killedEnemy){
-             gui.setText('Great job you won');
-         }
-      }
-
-  }
-  function jump(event)
-  {
-      if (player.body.touching.down)
-      {
-           player.setVelocityY(-1300)
-           player.currentJumps++;
-      }
-      else if (player.currentJumps < player.totalJumps)
-      {
-           player.setVelocityY(-900)
-           player.currentJumps++;
-      
-      }
-  }
-  function updateSword(){
-       if (swordDrawn){
-           swordDrawn = false;
-       }
-       else{
-           swordDrawn = true;
-       }
    }
+ 
    function updateSword(){
-       if (swordDrawn){
-           swordDrawn = false;
-       }
-       else{
-           swordDrawn = true;
-       }
+        if (swordDrawn){
+            swordDrawn = false;
+        }
+        else{
+            swordDrawn = true;
+        }
+    }
+    function updateSword(){
+        if (swordDrawn){
+            swordDrawn = false;
+        }
+        else{
+            swordDrawn = true;
+        }
+    }
+    
+    function updateTime(){
+        timeDone = true;
+    }
+
+    function updateVictory(){
+        victoryStart = true;
+        
+    }
+
+
+    function attack(event){
+        player.sounds["atk"].play();
+        if (numAttack === 1){
+            if (lastLeft){
+                player.play(player.animations['attack2L'], true);
+            }
+            else{
+                player.play(player.animations['attack2R'], true);
+            }
+            numAttack++;
+        }
+        else if (numAttack === 2){
+            if (lastLeft){
+                player.play(player.animations['attack3L'], true);
+            }
+            else{
+                player.play(player.animations['attack3R'], true);
+            }
+            numAttack = 0;
+        }
+        else{
+           //timer = this.time.delayedCall(1000, updateTime, [], this);
+           if (lastLeft){
+                player.play(player.animations['attack1L'], true);
+            }
+            else{
+                player.play(player.animations['attack1R'], true);
+            }
+            numAttack++;
+            
+            
+           
+        }
+
+    }
+
+    function performIdle(){
+        if (lastLeft){
+                if (swordDrawn){
+                    player.play(player.animations['idle2L'], true);
+                }
+                else{
+                    player.play(player.animations['idleL'], true);
+                }
+            }
+            else{
+                if (swordDrawn){
+                    player.play(player.animations['idle2R'], true);
+                }
+                else{
+                    player.play(player.animations['idleR'], true);
+                }
+            }
+    }
+    
+    function hitenemy(enemy)
+    {
+   //gui.setText('In conditional'); 
+        if (swordDrawn === false) {
+            
+            death = true;
+            newText.setText('The enemy has killed you!'); 
+            var newTimer = this.time.delayedCall(1000, removeText, [], this);
+            var timer2 = this.time.delayedCall(1000, restartScene, [], this);
+           
+
+        }
+        else {
+            if (!timeDone){
+                
+                rabbit.x = rabbit.x + 50
+                rabbit.x = rabbit.x + 50
+                rabbit.y = rabbit.y + 25
+                
+                newText.setText('You have killed an enemy!');
+                var newTimer = this.time.delayedCall(1000, removeText, [], this);
+                enemy.disableBody(true, true);
+                killedEnemy = true
+            }
+        }   
+    }
+    function updateAttacking(){
+      attacking = true;
+        
+    }
+
+
+   function pickcoin(player, coin)
+   {
+       coin.disableBody(true, true);
+       pickedcoins++;
+       
+   }
+ 
+   function removeText()
+   {
+       newText.setText('');
    }
 
-   function updateAttacking(){
-       if (attacking){
-           attacking = false;
-       }
-       else{
-           attacking = true;
-       }
-   }
-  
-   function updateTime(){
-       timeDone = true;
+   function restartScene(){
+       this.scene.restart()
    }
  
-   function attack(event){
-      
-       if (numAttack === 1){
-           if (lastLeft){
-               player.play(player.animations['attack2L'], true);
-           }
-           else{
-               player.play(player.animations['attack2R'], true);
-           }
-           numAttack++;
+   class Player extends Phaser.Physics.Arcade.Sprite
+   {
+       totalJumps = 2;
+       currentJumps = 0;
+       constructor(scene, x, y, spritesheet, animations, sounds)
+       {
+           super(scene, x, y, spritesheet);
+           this.sounds = sounds;
+           this.animations = animations;
+           scene.add.existing(this);
+           scene.physics.add.existing(this);
+           this.setScale(2);
+           this.setCollideWorldBounds(true);
+           this.setGravityY(3000); //We will set gravity *per object* rather than for the scene!
        }
-       else if (numAttack === 2){
-           if (lastLeft){
-               player.play(player.animations['attack3L'], true);
-           }
-           else{
-               player.play(player.animations['attack3R'], true);
-           }
-           numAttack = 0;
-       }
-       else{
-          //var timer = this.time.delayedCall(1000, updateTime, [], this);
-          if (lastLeft){
-               player.play(player.animations['attack1L'], true);
-           }
-           else{
-               player.play(player.animations['attack1R'], true);
-           }
-           numAttack++;
-          
-         
-       }
- 
    }
-  
-  function pickcoin(player, coin)
-  {
-      coin.disableBody(true, true);
-      gui.setText('Number of coins picked up: '+ pickedcoins);
-      pickedcoins++;
-  }
-  function removeText()
-  {
-      gui.setText('');
-  }
-  class Player extends Phaser.Physics.Arcade.Sprite
-  {
-      totalJumps = 2;
-      currentJumps = 0;
-      constructor(scene, x, y, spritesheet, animations)
-      {
-          super(scene, x, y, spritesheet);
-          this.animations = animations;
-          scene.add.existing(this);
-          scene.physics.add.existing(this);
-          this.setScale(2);
-          this.setCollideWorldBounds(true);
-          this.setGravityY(3000); //We will set gravity *per object* rather than for the scene!
-      }
-  }
-  class coins1 extends Phaser.Physics.Arcade.Sprite
-  {
-      constructor(scene, x, y)
-      {
-          super(scene, x, y, 'coin');
-          scene.add.existing(this);
-          scene.physics.add.existing(this);
-          this.setCollideWorldBounds(true);
-          this.setGravityY(1000);
-      }
-  }
-  </script>
+ 
+   class coins1 extends Phaser.Physics.Arcade.Sprite
+   {
+       constructor(scene, x, y)
+       {
+           super(scene, x, y, 'coin');
+           scene.add.existing(this);
+           scene.physics.add.existing(this);
+           this.setCollideWorldBounds(true);
+           this.setGravityY(1000);
+       }
+   }
+   </script>
+ 
 </body>
+ 
 </html>
